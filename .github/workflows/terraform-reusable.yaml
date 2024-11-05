@@ -1,0 +1,41 @@
+name: Terraform
+on:
+  workflow_call:
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials with OIDC
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/${{ secrets.AWS_ROLE_NAME }}
+          role-session-name: GitHubActionsTerraform
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.0
+
+      - name: Terraform Init
+        env:
+          TF_TOKEN: ${{ secrets.TF_API_TOKEN }}
+        run: terraform init
+
+      - name: Terraform Plan
+        env:
+          TF_TOKEN: ${{ secrets.TF_API_TOKEN }}
+        run: terraform plan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main'
+        env:
+          TF_TOKEN: ${{ secrets.TF_API_TOKEN }}
+        run: terraform apply -auto-approve
